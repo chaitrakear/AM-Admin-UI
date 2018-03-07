@@ -38,12 +38,13 @@ myApp.config(['RestangularProvider', function(rgp) {
         }	
 		return {params: params};
 	}),
-  
-  rgp.addElementTransformer('dt_profile', function(element) {
-        for (var key in element.values) {
-            element[key] = element.dt_list[key];
+  rgp.addFullRequestInterceptor(function(element, operation, what, url, headers, params, httpConfig) {
+        if(operation == 'put') {
+          for (var key in element.values) {
+            element[key] = element.entity_attribute_mapping[key];
+         }
         }
-        return element;
+        return { element: element };
   });
 }]);
 
@@ -105,6 +106,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var channels = nga.entity('channels').baseApiUrl('http://localhost:23330/v0/campaigns/');
 
     channels.creationView().fields([
+       nga.field('campaign_id').editable(false),
        nga.field('channel_id','choice')
           .choices([
               { label: 'VOICE - INBOUND', value: 1},
@@ -115,15 +117,19 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     admin.addEntity(channels);
 
     var entityAttributeMappings = nga.entity('mappings').baseApiUrl('http://localhost:23330/v0/entityAttributes/');
-    var entityAttributeValue = nga.entity('values').baseApiUrl('http://localhost:23330/v0/entityAttributes/');
+    var eValue = nga.entity('values').baseApiUrl('http://localhost:23330/v0/entityAttributes/');
     var entityAttribute = nga.entity('entityAttributes');
+    var attributeValue = nga.entity('entityAttributeValue');
+     // var attributeValue = nga.entity('entityAttributeValue').url(function(entityName, viewType, identifierValue, identifierName) {
+     //       return entityName+'/'+identifierValue;
+     // });
     
     entityAttribute.listView().fields([
         nga.field('name'),
         nga.field('description')
       ]);
 
-    entityAttributeValue.editionView().title('Edit Attribute').fields([
+    eValue.editionView().title('Edit Attribute').fields([
           nga.field('entity_attribute.id'),
           nga.field('entity_attribute.name'),
           nga.field('entity_attribute.description'),
@@ -131,7 +137,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
       ]);
 
 
-    entityAttributeValue.creationView().title('Add Attribute').fields([
+    eValue.creationView().title('Add Attribute').fields([
         nga.field('entity_attribute_id', 'reference').label('Attribute Name')
             .targetEntity(entityAttribute)
             .targetField(nga.field('name')),
@@ -144,16 +150,86 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 {label: 'DOUBLE', value: 'DOUBLE'},
                 {label: 'ENUM', value: 'ENUM'}
               ]),
-        nga.field('string_value')
-        //    .template('<ma-field ng-if="entry.values.value_type == \"INTEGER\"" field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true)
-        // nga.field('string_value')
-        //     .template('<ma-field ng-if="entry.value_type == \"STRING\"" field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
-        // nga.field('boolean_value')
-        // .template('<ma-field ng-if="entry.value_type == \"BOOLEAN\"" field="::field" value="entry.value()" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
-        // nga.field('text_value')
-        // .template('<ma-field ng-if="entry.value_type == \"TEXT\"" field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
+        nga.field('long_value').label('Value')
+            .transform(function matchValue(value, entry) {
+                if (entry.value_type == "INTEGER") {
+                  entry.long_value = value;
+                } 
+                if (entry.value_type == "BOOLEAN") {
+                  entry.boolean_value = value;
+                  entry.long_value = null;
+                }
+                if (entry.value_type == "STRING") {
+                  entry.string_value = value;
+                  entry.long_value = null;
+                }
+                if (entry.value_type == "TEXT") {
+                  entry.text_value = value;
+                  entry.long_value = null;
+                }
+            })
       ]);
-    admin.addEntity(entityAttributeValue);
+    admin.addEntity(eValue);
+
+
+    entityAttributeMappings.creationView().title('Add Attribute').fields([
+        nga.field('entity_attribute_id', 'reference').label('Attribute Name')
+            .targetEntity(entityAttribute)
+            .targetField(nga.field('name')),
+        nga.field('value_type','choice').label('Value Type')
+            .choices([
+                {label: 'INTEGER', value: 'INTEGER'},
+                {label: 'STRING', value: 'STRING'},
+                {label: 'BOOLEAN', value: 'BOOLEAN'},
+                {label: 'TEXT', value: 'TEXT'},
+                {label: 'DOUBLE', value: 'DOUBLE'},
+                {label: 'ENUM', value: 'ENUM'}
+              ]),
+        nga.field('long_value').label('Value')
+            .transform(function matchValue(value, entry) {
+                if (entry.value_type == "INTEGER") {
+                  entry.long_value = value;
+                } 
+                if (entry.value_type == "BOOLEAN") {
+                  entry.boolean_value = value;
+                  entry.long_value = null;
+                }
+                if (entry.value_type == "STRING") {
+                  entry.string_value = value;
+                  entry.long_value = null;
+                }
+                if (entry.value_type == "TEXT") {
+                  entry.text_value = value;
+                  entry.long_value = null;
+                }
+            })
+      ]);
+    admin.addEntity(entityAttributeMappings);
+
+
+    attributeValue.editionView().fields([
+          nga.field('id').editable(false),
+          nga.field('value_type').editable(false),
+          nga.field('long_value').label('Value')
+            .transform(function matchValue(value, entry) {
+                if (entry.value_type == "INTEGER") {
+                  entry.long_value = value;
+                } 
+                if (entry.value_type == "BOOLEAN") {
+                  entry.boolean_value = value;
+                  entry.long_value = null;
+                }
+                if (entry.value_type == "STRING") {
+                  entry.string_value = value;
+                  entry.long_value = null;
+                }
+                if (entry.value_type == "TEXT") {
+                  entry.text_value = value;
+                  entry.long_value = null;
+                }
+            })
+      ]);
+    admin.addEntity(attributeValue);
 	
   	var campaigns = nga.entity('campaigns');
   	
@@ -174,21 +250,24 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             nga.field('channel.channel_mode')
           ]),
         nga.field('attributes', 'embedded_list')
+          .targetEntity(attributeValue)
           .targetFields([
             nga.field('entity_attribute.id'),
             nga.field('entity_attribute.name'),
             nga.field('entity_attribute.description'),
             nga.field('long_value') 
-            .template('<ma-field ng-if="entry.values.value_type == \"INTEGER\"" field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
+            .template('<ma-field ng-if="entry.values.value_type == \"INTEGER\"" field="::field"" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
             nga.field('string_value')
             .template('<ma-field ng-if="entry.values.value_type == \"STRING\"" field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
             nga.field('boolean_value')
             .template('<ma-field ng-if="entry.values.value_type == \"BOOLEAN\"" field="::field" value="entry.value()" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
             nga.field('text_value')
-            .template('<ma-field ng-if="entry.values.value_type == \"TEXT\"" field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true),
+            .template('<ma-field ng-if="entry.values.value_type == \"TEXT\"" field="::field" value="entry.values.id" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>', true)
           ])
-          .listActions(['<ma-edit-button entry="::entry" entity-name="values" default-values="{ id: entry.values.id } size="xs" label="Edit"></ma-edit-button>']),
-        nga.field('dispositions', 'embedded_list'),
+          // .listActions(['<ma-create-button entity-name="entityAttributeValue" size="sm" label="Edit" default-values="{ id: entry.values.id, value_type: entry.values.value_type, entity_attribute: entry.value.entity_attribute }"></ma-create-button></span>']),
+        .listActions(['<ma-edit-button entity="::entity" entry="::entry" size="xs" default-values="{ id: entry.values.id, value_type: entry.values.value_type }" label="Edit"></ma-edit-button></span>']),
+        // .listActions(['<ma-edit-button entity="::entity" entry="::entry" size="xs" label="Edit""></ma-edit-button></span>']),
+        // nga.field('dispositions', 'embedded_list'),
         nga.field('').label('')
         .template('<ma-create-button entity-name="channels" size="sm" label="Attach Campaign Channel" default-values="{ campaign_id: entry.values.id  }"></ma-create-button></span>'),
         nga.field('').label('')
@@ -208,8 +287,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     admin.addEntity(campaigns);
 
-    var grout
-
+  
     var dt_profile = nga.entity('dt').url(function(entityName, viewType, identifierValue, identifierName) {
         return entityName+'/'+'profile'+'/'+  identifierValue;
     });
@@ -228,7 +306,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .listActions(['<ma-show-button entry="entry" entity-name="dt" size="sm">']);
     admin.addEntity(profiles);
 
-    //var groupEntity = nga.
 
     dt_profile.showView().fields([
         nga.field('profile_id','reference').label('Profile')
@@ -239,7 +316,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             nga.field('name'),
             nga.field('category')
           ])
-        .listActions(['<ma-delete-button entry="::entry" entity-name="" default-values="{ id: Constants.DT_ROLES[entry.values.id] } size="xs" label="Remove"></ma-delete-button>'])
+        .listActions(['<ma-delete-button entry="::entry" entity-name="" default-values="{ id: Constants.DT_ROLES[entry.values.id] } size="sm" label="Remove"></ma-delete-button>'])
       ]).actions(['']);
     
   	var skills = nga.entity('skills');
@@ -275,7 +352,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
       .addChild(nga.menu(costCentre).icon('<span class="glyphicon glyphicon-home"></span>'))
       .addChild(nga.menu(profiles).icon('<span class="glyphicon glyphicon-user"></span>'))
       .addChild(nga.menu(skills).icon('<span class="glyphicon glyphicon-pencil"></span>'))
-      //.addChild(nga.menu(dt_profile).icon('<span class="glyphicon glyphicon-pencil"></span>'))
     );
 
     nga.configure(admin);
