@@ -1,0 +1,70 @@
+Reachout Notes
+
+
+mandatory:
+INVALID
+ORDER_ITEM_UNIT_APPROVED - rto sms
+REFUND_COMPLETED
+REFUND_FAILED
+ORDER_ITEM_UNIT_REJECTED - rto sms
+
+optional:
+
+ORDER_ITEM_UNIT_APPROVED
+ORDER_ITEM_UNIT_CANCELLED
+ORDER_ITEM_UNIT_REJECTED
+TOA_ISSUED
+
+
+
+
+ rto_mis_shipment_email_template
+
+ OMS3 : 
+ out type : return 
+ inner type : return 
+
+ refund_expect_email_updated
+
+ in type : return
+ out type : return
+
+ rto_mis_route_email_template
+
+ int type : RETURN
+ out type : RETURN
+
+ wait_refund_other_email_updated
+
+ in type : CREATE
+ out type : CREATE
+
+ customer_cancellation_rto_emai
+
+ in type : CREATE
+ out type : CREATE
+
+ seller_cancellation_rto_email
+
+ in type : CREATE
+ out type : CREATE
+
+
+FDP queries: 
+
+
+ select get_json_object(jsondata,'$.data.order_id'), hour from bigfoot_raw.dart_fkint_mp_cs_smsrequest_raw where hour>2018042000 and get_json_object(jsondata,'$.data.template_name')= "customer_part_replenishment_rejected_sms";
+
+ select get_json_object(jsondata,'$.data.order_id'), hour from bigfoot_raw.dart_fkint_mp_cs_smsrequest_raw where hour>2018042000 and get_json_object(jsondata,'$.data.template_name')= "customer_part_replenishment_confirmed_sms";
+
+ select * from bigfoot_raw.dart_fkint_mp_cs_smsrequest_raw where hour>20180401800 and hour<20180511000 and get_json_object(jsondata, '$.data.order_id')="OD212064542867608000";
+
+ select * from bigfoot_raw.dart_fkint_mp_cs_reachoutasyncrequest_raw where hour>201804300800 and hour<20180505000 and get_json_object(jsondata, '$.data.order_id')="OD212040805661926000";
+
+
+2 cases when comm is sent for ORDER_ITEM_UNIT_APPROVED :
+   1. unitType is PHYSICAL and reason REPLENISHMENT_NOT_POSSIBLE -> rejection mail/sms
+   2. unitType is REPLENISHMENT -> confirmation mail/sms
+
+
+
